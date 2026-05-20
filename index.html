@@ -129,11 +129,11 @@
         const json = await res.json();
 
         if (json.status !== 'ok' || !json.data.length) {
-          statusEl.textContent = '⚠️ Tidak ada data';
+          statusEl.textContent = 'Tidak ada data';
           return;
         }
 
-        statusEl.textContent = '✅ CONNECT – data diterima dari database';
+        statusEl.textContent = 'CONNECT - data diterima dari database';
 
         const rows   = json.data;
         const latest = rows[rows.length - 1];
@@ -159,7 +159,7 @@
           new Date().toLocaleTimeString('id-ID');
 
       } catch (err) {
-        statusEl.textContent = '❌ DISCONNECT – gagal menghubungi server: ' + err.message;
+        statusEl.textContent = 'DISCONNECT - gagal menghubungi server: ' + err.message;
       }
     }
 
