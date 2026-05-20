@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor PZEM-004T</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <h1>Monitor Energi PZEM-004T</h1>
+
+  <!-- ── Status ── -->
+  <p>
+    Status koneksi ke database:
+    <b id="status">Menghubungkan...</b>
+  </p>
+  <p>Terakhir diperbarui: <span id="last-update">-</span></p>
+
+  <!-- ── Nilai terkini ── -->
+  <h2>Nilai Terkini</h2>
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Nilai</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Tegangan</td><td id="val-tegangan">-</td></tr>
+      <tr><td>Arus</td>    <td id="val-arus">-</td></tr>
+      <tr><td>Daya</td>    <td id="val-daya">-</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ── Grafik ── -->
+  <h2>Grafik Tegangan (V)</h2>
+  <canvas id="chartTegangan" width="800" height="200"></canvas>
+
+  <h2>Grafik Arus (A)</h2>
+  <canvas id="chartArus" width="800" height="200"></canvas>
+
+  <h2>Grafik Daya (W)</h2>
+  <canvas id="chartDaya" width="800" height="200"></canvas>
+
+  <!-- ── Tabel riwayat ── -->
+  <h2>Riwayat Data (30 terakhir)</h2>
+  <table id="tabelData" border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Waktu</th>
+        <th>Tegangan (V)</th>
+        <th>Arus (A)</th>
+        <th>Daya (W)</th>
+      </tr>
+    </thead>
+    <tbody id="tabelBody">
+      <tr><td colspan="5">Memuat data...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    // ── Konfigurasi ───────────────────────────────────────────────────────────
+    // Ganti dengan URL api.php di server kamu
+    const API_URL      = 'http://192.168.1.6/projectlistrik/api.php?limit=30';
+    const POLL_INTERVAL = 5000; // ms – sesuaikan dengan interval ESP32
+
+    // ── Buat chart helper ─────────────────────────────────────────────────────
+    function buatChart(id, label, color, unit) {
+      return new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label       : `${label} (${unit})`,
+            data        : [],
+            borderColor : color,
+            backgroundColor: color + '33',
+            fill        : true,
+            tension     : 0.3,
+            pointRadius : 3
+          }]
+        },
+        options: {
+          animation : false,
+          responsive: false,
+          scales: {
+            x: { ticks: { maxTicksLimit: 10 } },
+            y: { beginAtZero: false }
+          }
+        }
+      });
+    }
+
+    const chartV = buatChart('chartTegangan', 'Tegangan', '#0055cc', 'V');
+    const chartI = buatChart('chartArus',     'Arus',     '#cc4400', 'A');
+    const chartP = buatChart('chartDaya',     'Daya',     '#007744', 'W');
+
+    // ── Update chart dari array rows ──────────────────────────────────────────
+    function updateChart(chart, rows, key) {
+      chart.data.labels          = rows.map(r => r.waktu);
+      chart.data.datasets[0].data = rows.map(r => parseFloat(r[key]));
+      chart.update();
+    }
+
+    // ── Update tabel riwayat ──────────────────────────────────────────────────
+    function updateTabel(rows) {
+      const tbody = document.getElementById('tabelBody');
+      tbody.innerHTML = '';
+      rows.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${r.waktu}</td>
+          <td>${parseFloat(r.tegangan).toFixed(2)}</td>
+          <td>${parseFloat(r.arus).toFixed(3)}</td>
+          <td>${parseFloat(r.daya).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Polling utama ─────────────────────────────────────────────────────────
+    async function fetchData() {
+      const statusEl = document.getElementById('status');
+      try {
+        const res  = await fetch(API_URL);
+        const json = await res.json();
+
+        if (json.status !== 'ok' || !json.data.length) {
+          statusEl.textContent = '⚠️ Tidak ada data';
+          return;
+        }
+
+        statusEl.textContent = '✅ CONNECT – data diterima dari database';
+
+        const rows   = json.data;
+        const latest = rows[rows.length - 1];
+
+        // Nilai terkini
+        document.getElementById('val-tegangan').textContent =
+          parseFloat(latest.tegangan).toFixed(2) + ' V';
+        document.getElementById('val-arus').textContent =
+          parseFloat(latest.arus).toFixed(3) + ' A';
+        document.getElementById('val-daya').textContent =
+          parseFloat(latest.daya).toFixed(2) + ' W';
+
+        // Grafik
+        updateChart(chartV, rows, 'tegangan');
+        updateChart(chartI, rows, 'arus');
+        updateChart(chartP, rows, 'daya');
+
+        // Tabel
+        updateTabel([...rows].reverse()); // tampilkan terbaru di atas
+
+        // Waktu update
+        document.getElementById('last-update').textContent =
+          new Date().toLocaleTimeString('id-ID');
+
+      } catch (err) {
+        statusEl.textContent = '❌ DISCONNECT – gagal menghubungi server: ' + err.message;
+      }
+    }
+
+    // Jalankan langsung lalu ulangi tiap POLL_INTERVAL
+    fetchData();
+    setInterval(fetchData, POLL_INTERVAL);
+  </script>
+</body>
+</html>
