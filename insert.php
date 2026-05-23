@@ -11,10 +11,10 @@
 header('Content-Type: application/json');
 
 // ── Konfigurasi Database ──────────────────────────────────────────────────────
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');       // ganti sesuai user MySQL kamu
-define('DB_PASS', '');           // ganti sesuai password MySQL kamu
-define('DB_NAME', 'pzem_db');
+define('DB_HOST', 'sql104.byethost5.com');
+define('DB_USER', 'b5_41985393');       // ganti sesuai user MySQL kamu
+define('DB_PASS', 'AdsDwqd123');           // ganti sesuai password MySQL kamu
+define('DB_NAME', 'b5_41985393_pzem_db');
 
 // ── Hanya terima POST ─────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
