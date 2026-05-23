@@ -11,10 +11,10 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *'); // izinkan akses dari browser
 
-define('DB_HOST', 'sql104.byethost5.com');
-define('DB_USER', 'b5_41985393');
-define('DB_PASS', 'AdsDwqd123');
-define('DB_NAME', 'b5_41985393_pzem_db');
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '123');
+define('DB_NAME', 'pzem_db');
 
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 30;
 $limit = max(1, min($limit, 200)); // batasi 1–200
