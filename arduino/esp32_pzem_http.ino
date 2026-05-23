@@ -14,13 +14,13 @@
 #include <PZEM004Tv30.h>
 
 // ── WiFi ─────────────────────────────────────────────────────────────────────
-const char* ssid = "BERKAH KEDAI";
-const char* password = "berkah71";
+const char* ssid = "Juanda Ibrahim";
+const char* password = "12345678";
 
 // ── Server PHP ────────────────────────────────────────────────────────────────
 // Contoh lokal  : "http://192.168.1.100/pzem/insert.php"
 // Contoh hosting: "http://namadomain.com/pzem/insert.php"
-const char* serverURL = "http://192.168.1.6/projectlistrik/insert.php";
+const char* serverURL = "https://simtad.my.id/insert.php";
 
 // ── PZEM (RX=27, TX=26, via Serial2) ─────────────────────────────────────────
 PZEM004Tv30 pzem(Serial2, 27, 26);
