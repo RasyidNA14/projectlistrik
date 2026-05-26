@@ -2,14 +2,13 @@
 /*
  * api.php
  * Dipanggil HTML setiap beberapa detik untuk mendapatkan data terbaru.
- * Simpan di folder yang sama dengan insert.php.
  *
- * GET /pzem/api.php?limit=30
+ * GET /api.php?limit=30
  *   → JSON array 30 baris terbaru, urutan ASC (lama → baru) untuk grafik
  */
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); // izinkan akses dari browser
+header('Access-Control-Allow-Origin: *');
 
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
@@ -17,7 +16,7 @@ define('DB_PASS', '123');
 define('DB_NAME', 'pzem_db');
 
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 30;
-$limit = max(1, min($limit, 200)); // batasi 1–200
+$limit = max(1, min($limit, 200));
 
 try {
     $pdo = new PDO(
@@ -26,10 +25,10 @@ try {
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 
-    // Ambil N baris terbaru, lalu urutkan ASC agar grafik runtut waktu
     $stmt = $pdo->prepare("
         SELECT tegangan, arus, daya,
-               DATE_FORMAT(waktu, '%H:%i:%s') AS waktu
+               DATE_FORMAT(waktu, '%H:%i:%s') AS waktu,
+               DATE_FORMAT(waktu, '%d %b %Y, %H:%i:%s') AS waktu_db
         FROM (
             SELECT * FROM sensor_data
             ORDER BY id DESC
@@ -42,10 +41,14 @@ try {
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // waktu_db terbaru = baris terakhir (data paling baru)
+    $waktu_db_terbaru = count($rows) > 0 ? $rows[count($rows) - 1]['waktu_db'] : null;
+
     echo json_encode([
-        'status' => 'ok',
-        'count'  => count($rows),
-        'data'   => $rows
+        'status'   => 'ok',
+        'count'    => count($rows),
+        'waktu_db' => $waktu_db_terbaru,
+        'data'     => $rows
     ]);
 
 } catch (PDOException $e) {

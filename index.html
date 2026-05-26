@@ -4,107 +4,159 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitor PZEM-004T</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
-  <h1>Monitor Energi PZEM-004T</h1>
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>Monitor <span class="aksen">PZEM-004T</span></h1>
+    </div>
+  </header>
 
-  <!-- ── Status ── -->
-  <p>
-    Status koneksi ke database:
-    <b id="status">Menghubungkan...</b>
-  </p>
-  <p>Terakhir diperbarui: <span id="last-update">-</span></p>
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <div>
+      <span class="dot"></span>
+      <span id="status">Menghubungkan...</span>
+    </div>
+    <div class="waktu-info">
+      <span class="waktu-label">Data terakhir dari database</span>
+      <span id="last-update">-</span>
+    </div>
+  </div>
 
-  <!-- ── Nilai terkini ── -->
-  <h2>Nilai Terkini</h2>
-  <table border="1" cellpadding="8" cellspacing="0">
-    <thead>
-      <tr>
-        <th>Parameter</th>
-        <th>Nilai</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>Tegangan</td><td id="val-tegangan">-</td></tr>
-      <tr><td>Arus</td>    <td id="val-arus">-</td></tr>
-      <tr><td>Daya</td>    <td id="val-daya">-</td></tr>
-    </tbody>
-  </table>
+  <main>
 
-  <!-- ── Grafik ── -->
-  <h2>Grafik Tegangan (V)</h2>
-  <canvas id="chartTegangan" width="800" height="200"></canvas>
+    <!-- Nilai Terkini -->
+    <div class="section">
+      <div class="section-title">Nilai Terkini</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-label">Tegangan</div>
+          <div class="card-value" id="val-tegangan">—<span>V</span></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Arus</div>
+          <div class="card-value" id="val-arus">—<span>A</span></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Daya</div>
+          <div class="card-value" id="val-daya">—<span>W</span></div>
+        </div>
+      </div>
+    </div>
 
-  <h2>Grafik Arus (A)</h2>
-  <canvas id="chartArus" width="800" height="200"></canvas>
+    <!-- Grafik -->
+    <div class="section">
+      <div class="section-title">Grafik Real-Time</div>
 
-  <h2>Grafik Daya (W)</h2>
-  <canvas id="chartDaya" width="800" height="200"></canvas>
+      <div class="chart-wrap">
+        <div class="chart-label">Tegangan <span class="badge">V</span></div>
+        <canvas id="chartTegangan"></canvas>
+      </div>
 
-  <!-- ── Tabel riwayat ── -->
-  <h2>Riwayat Data (30 terakhir)</h2>
-  <table id="tabelData" border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Waktu</th>
-        <th>Tegangan (V)</th>
-        <th>Arus (A)</th>
-        <th>Daya (W)</th>
-      </tr>
-    </thead>
-    <tbody id="tabelBody">
-      <tr><td colspan="5">Memuat data...</td></tr>
-    </tbody>
-  </table>
+      <div class="chart-wrap">
+        <div class="chart-label">Arus <span class="badge">A</span></div>
+        <canvas id="chartArus"></canvas>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-label">Daya <span class="badge">W</span></div>
+        <canvas id="chartDaya"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabel Riwayat -->
+    <div class="section">
+      <div class="section-title">Riwayat Data (30 Terakhir)</div>
+      <div class="tabel-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Waktu</th>
+              <th>Tegangan (V)</th>
+              <th>Arus (A)</th>
+              <th>Daya (W)</th>
+            </tr>
+          </thead>
+          <tbody id="tabelBody">
+            <tr><td colspan="5" style="text-align:center;padding:20px;color:#8899AA;">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
 
   <script>
     // ── Konfigurasi ───────────────────────────────────────────────────────────
-    // Ganti dengan URL api.php di server kamu
-    const API_URL      = 'https://simtad.my.id/api.php?limit=30';
-    const POLL_INTERVAL = 5000; // ms – sesuaikan dengan interval ESP32
+    const API_URL       = 'https://simtad.my.id/api.php?limit=30';
+    const POLL_INTERVAL = 5000;
 
-    // ── Buat chart helper ─────────────────────────────────────────────────────
-    function buatChart(id, label, color, unit) {
+    // ── Warna chart sesuai tema ───────────────────────────────────────────────
+    const COLORS = {
+      tegangan : { border: '#1560BD', bg: '#1560BD22' },
+      arus     : { border: '#F5C400', bg: '#F5C40022' },
+      daya     : { border: '#0A3566', bg: '#0A356622' },
+    };
+
+    // ── Buat chart ────────────────────────────────────────────────────────────
+    function buatChart(id, label, warna, unit) {
       return new Chart(document.getElementById(id), {
         type: 'line',
         data: {
           labels: [],
           datasets: [{
-            label       : `${label} (${unit})`,
-            data        : [],
-            borderColor : color,
-            backgroundColor: color + '33',
-            fill        : true,
-            tension     : 0.3,
-            pointRadius : 3
+            label               : `${label} (${unit})`,
+            data                : [],
+            borderColor         : warna.border,
+            backgroundColor     : warna.bg,
+            fill                : true,
+            tension             : 0.35,
+            pointRadius         : 3,
+            pointBackgroundColor: warna.border,
+            borderWidth         : 2,
           }]
         },
         options: {
-          animation : false,
-          responsive: false,
+          animation           : false,
+          responsive          : true,
+          maintainAspectRatio : false,
           scales: {
-            x: { ticks: { maxTicksLimit: 10 } },
-            y: { beginAtZero: false }
+            x: {
+              ticks : { maxTicksLimit: 8, font: { family: 'DM Mono', size: 11 }, color: '#8899AA' },
+              grid  : { color: '#C8D8EE' },
+            },
+            y: {
+              beginAtZero: false,
+              ticks : { font: { family: 'DM Mono', size: 11 }, color: '#8899AA' },
+              grid  : { color: '#C8D8EE' },
+            }
+          },
+          plugins: {
+            legend: { labels: { font: { family: 'DM Mono', size: 11 }, color: '#0A3566' } }
           }
         }
       });
     }
 
-    const chartV = buatChart('chartTegangan', 'Tegangan', '#0055cc', 'V');
-    const chartI = buatChart('chartArus',     'Arus',     '#cc4400', 'A');
-    const chartP = buatChart('chartDaya',     'Daya',     '#007744', 'W');
+    const chartV = buatChart('chartTegangan', 'Tegangan', COLORS.tegangan, 'V');
+    const chartI = buatChart('chartArus',     'Arus',     COLORS.arus,     'A');
+    const chartP = buatChart('chartDaya',     'Daya',     COLORS.daya,     'W');
 
-    // ── Update chart dari array rows ──────────────────────────────────────────
+    // ── Update chart ──────────────────────────────────────────────────────────
     function updateChart(chart, rows, key) {
-      chart.data.labels          = rows.map(r => r.waktu);
+      chart.data.labels           = rows.map(r => r.waktu);
       chart.data.datasets[0].data = rows.map(r => parseFloat(r[key]));
       chart.update();
     }
 
-    // ── Update tabel riwayat ──────────────────────────────────────────────────
+    // ── Update tabel ──────────────────────────────────────────────────────────
     function updateTabel(rows) {
       const tbody = document.getElementById('tabelBody');
       tbody.innerHTML = '';
@@ -121,49 +173,50 @@
       });
     }
 
+    // ── Status helper ─────────────────────────────────────────────────────────
+    function setStatus(tipe, teks) {
+      document.getElementById('statusBar').className = 'status-bar ' + tipe;
+      document.getElementById('status').textContent  = teks;
+    }
+
     // ── Polling utama ─────────────────────────────────────────────────────────
     async function fetchData() {
-      const statusEl = document.getElementById('status');
       try {
         const res  = await fetch(API_URL);
         const json = await res.json();
 
         if (json.status !== 'ok' || !json.data.length) {
-          statusEl.textContent = 'Tidak ada data';
+          setStatus('disconnect', 'Tidak ada data di database');
           return;
         }
 
-        statusEl.textContent = 'CONNECT - data diterima dari database';
+        setStatus('connect', 'CONNECT — data diterima dari database');
 
         const rows   = json.data;
         const latest = rows[rows.length - 1];
 
         // Nilai terkini
-        document.getElementById('val-tegangan').textContent =
-          parseFloat(latest.tegangan).toFixed(2) + ' V';
-        document.getElementById('val-arus').textContent =
-          parseFloat(latest.arus).toFixed(3) + ' A';
-        document.getElementById('val-daya').textContent =
-          parseFloat(latest.daya).toFixed(2) + ' W';
+        document.getElementById('val-tegangan').innerHTML =
+          parseFloat(latest.tegangan).toFixed(2) + '<span>V</span>';
+        document.getElementById('val-arus').innerHTML =
+          parseFloat(latest.arus).toFixed(3) + '<span>A</span>';
+        document.getElementById('val-daya').innerHTML =
+          parseFloat(latest.daya).toFixed(2) + '<span>W</span>';
 
-        // Grafik
+        // Waktu dari database (bukan jam browser)
+        document.getElementById('last-update').textContent =
+          json.waktu_db ?? latest.waktu;
+
         updateChart(chartV, rows, 'tegangan');
         updateChart(chartI, rows, 'arus');
         updateChart(chartP, rows, 'daya');
-
-        // Tabel
-        updateTabel([...rows].reverse()); // tampilkan terbaru di atas
-
-        // Waktu update
-        document.getElementById('last-update').textContent =
-          new Date().toLocaleTimeString('id-ID');
+        updateTabel([...rows].reverse());
 
       } catch (err) {
-        statusEl.textContent = 'DISCONNECT - gagal menghubungi server: ' + err.message;
+        setStatus('disconnect', 'DISCONNECT — gagal menghubungi server: ' + err.message);
       }
     }
 
-    // Jalankan langsung lalu ulangi tiap POLL_INTERVAL
     fetchData();
     setInterval(fetchData, POLL_INTERVAL);
   </script>
